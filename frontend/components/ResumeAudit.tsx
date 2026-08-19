@@ -3,31 +3,59 @@
 import { useState, useRef, useEffect, ChangeEvent, DragEvent } from "react";
 import { uploadResume, getResume, listResumes, type ResumeRecord } from "@/lib/api";
 
+function formatRelativeTime(dateStr: string): string {
+  if (!dateStr) return "recently";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "recently";
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 30) return "Just now";
+  if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 7) return `${diffInDays}d ago`;
+
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
 export default function ResumeAuditComponent() {
+  const [activeView, setActiveView] = useState<"new" | "history" | "detail">("new");
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStage, setLoadingStage] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ResumeRecord | null>(null);
+  
+  // Results
+  const [newUploadResult, setNewUploadResult] = useState<ResumeRecord | null>(null);
+  const [selectedResume, setSelectedResume] = useState<ResumeRecord | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<"audit" | "extracted">("audit");
+
+  // History state
+  const [historyList, setHistoryList] = useState<ResumeRecord[]>([]);
+  const [historyLoading, setHistoryLoading] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    async function loadLatestResume() {
-      try {
-        const list = await listResumes();
-        if (list && list.length > 0) {
-          const latestId = list[0].id;
-          const full = await getResume(latestId);
-          setResult(full);
-        }
-      } catch {
-        // Silently ignore if no backend connection yet
-      }
+  // Load history list count / data on mount silently
+  const fetchHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const list = await listResumes();
+      setHistoryList(list as unknown as ResumeRecord[]);
+    } catch {
+      // Silently ignore if connection fails
+    } finally {
+      setHistoryLoading(false);
     }
-    loadLatestResume();
+  };
+
+  useEffect(() => {
+    fetchHistory();
   }, []);
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
@@ -90,7 +118,8 @@ export default function ResumeAuditComponent() {
 
       const res = await uploadResume(uploadFile);
       clearInterval(interval);
-      setResult(res);
+      setNewUploadResult(res);
+      fetchHistory(); // refresh history list from backend
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "An unexpected error occurred.";
       setError(msg);
@@ -99,16 +128,30 @@ export default function ResumeAuditComponent() {
     }
   };
 
-  const handleReset = () => {
+  const handleResetUpload = () => {
     setFile(null);
-    setResult(null);
+    setNewUploadResult(null);
     setError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const audit = result?.audit_feedback_json;
-  const parsed = result?.parsed_json;
-  const score = Math.round(result?.audit_score ?? audit?.overall_score ?? 0);
+  const handleSelectHistoryCard = async (id: number) => {
+    try {
+      setHistoryLoading(true);
+      const full = await getResume(id);
+      setSelectedResume(full);
+      setActiveView("detail");
+    } catch (err) {
+      setError("Failed to load historical resume details.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const currentResult = activeView === "detail" ? selectedResume : newUploadResult;
+  const audit = currentResult?.audit_feedback_json;
+  const parsed = currentResult?.parsed_json;
+  const score = Math.round(currentResult?.audit_score ?? audit?.overall_score ?? 0);
 
   const getScoreColor = (val: number) => {
     if (val >= 85) return "#10b981"; // emerald
@@ -124,112 +167,255 @@ export default function ResumeAuditComponent() {
     return "badge-red";
   };
 
+  const getFilename = (url?: string) => {
+    if (!url) return "Uploaded Resume";
+    const parts = url.split("/");
+    const raw = parts[parts.length - 1];
+    return raw.replace(/^[a-f0-9]+_/, "") || "Resume Document";
+  };
+
   return (
     <div className="resume-audit-container">
-      {/* Header */}
-      <div className="dashboard-header">
-        <h1 className="dashboard-greeting">
-          Resume <span>Audit & Analysis</span>
-        </h1>
-        <p className="dashboard-subtitle">
-          Upload your resume (PDF/DOCX) for deep AI parsing, scannability auditing, and actionable feedback.
-        </p>
+      {/* Header & Sub-Tab Navigation */}
+      <div className="dashboard-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "var(--sp-4)" }}>
+        <div>
+          <h1 className="dashboard-greeting">
+            Resume <span>Audit & Analysis</span>
+          </h1>
+          <p className="dashboard-subtitle">
+            Upload your resume (PDF/DOCX) for deep AI parsing, scannability auditing, and actionable feedback.
+          </p>
+        </div>
+
+        {/* Sub-tab view toggle */}
+        <div style={{ display: "flex", gap: "var(--sp-2)", background: "var(--gray-100)", padding: "4px", borderRadius: "var(--r-lg)", border: "1px solid var(--border)" }}>
+          <button
+            type="button"
+            className={`btn btn-sm ${activeView === "new" ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => {
+              setActiveView("new");
+              setError(null);
+            }}
+          >
+            📄 New Audit
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm ${activeView === "history" || activeView === "detail" ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => {
+              setActiveView("history");
+              setError(null);
+              fetchHistory();
+            }}
+          >
+            📜 Past Audits ({historyList.length})
+          </button>
+        </div>
       </div>
 
-      {/* Upload card (shown if no result and not loading) */}
-      {!result && !isLoading && (
-        <div className="panel upload-panel">
+      {/* VIEW 1: NEW AUDIT (Upload Dropzone / Processing / Fresh Results) */}
+      {activeView === "new" && (
+        <>
+          {/* Upload Dropzone (shown if no new upload result and not loading) */}
+          {!newUploadResult && !isLoading && (
+            <div className="panel upload-panel">
+              <div className="panel-header">
+                <span className="panel-title">Upload Resume</span>
+                <span className="badge badge-blue">PDF / DOCX</span>
+              </div>
+              <div className="panel-body">
+                <div
+                  className={`dropzone ${isDragging ? "dragging" : ""}`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Upload resume file dropzone"
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.docx,.doc"
+                    className="hidden-file-input"
+                    onChange={handleFileSelect}
+                  />
+                  <div className="dropzone-icon">📄</div>
+                  <h3 className="dropzone-title">
+                    Drag &amp; drop your resume here, or <span className="text-brand">browse files</span>
+                  </h3>
+                  <p className="dropzone-sub">
+                    Supports PDF and DOCX files up to 10MB.
+                  </p>
+                </div>
+
+                {error && (
+                  <div className="error-banner" role="alert" style={{ marginTop: "var(--sp-4)" }}>
+                    <span className="error-icon">⚠️</span>
+                    <div>
+                      <strong>Upload Error:</strong> {error}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Loading stage */}
+          {isLoading && (
+            <div className="panel loading-panel">
+              <div className="panel-body loading-body">
+                <div className="spinner" aria-hidden="true" />
+                <h3 className="loading-title">Analyzing Resume with Gemini AI</h3>
+                <p className="loading-subtitle">{loadingStage}</p>
+                <p className="loading-note">
+                  This usually takes 8–15 seconds while Gemini performs full-text parsing and audit analysis.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Error retry */}
+          {error && !isLoading && !newUploadResult && (
+            <div className="text-center mt-4" style={{ textAlign: "center", marginTop: "var(--sp-4)" }}>
+              <button type="button" className="btn btn-secondary" onClick={handleResetUpload}>
+                Try Uploading Again
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* VIEW 2: PAST AUDITS HISTORY LIST */}
+      {activeView === "history" && (
+        <div className="panel">
           <div className="panel-header">
-            <span className="panel-title">Upload Resume</span>
-            <span className="badge badge-blue">PDF / DOCX</span>
+            <span className="panel-title">Past Resume Audits</span>
+            <span className="badge badge-blue">{historyList.length} Saved</span>
           </div>
           <div className="panel-body">
-            <div
-              className={`dropzone ${isDragging ? "dragging" : ""}`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              role="button"
-              tabIndex={0}
-              aria-label="Upload resume file dropzone"
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.docx,.doc"
-                className="hidden-file-input"
-                onChange={handleFileSelect}
-              />
-              <div className="dropzone-icon">📄</div>
-              <h3 className="dropzone-title">
-                Drag &amp; drop your resume here, or <span className="text-brand">browse files</span>
-              </h3>
-              <p className="dropzone-sub">
-                Supports PDF and DOCX files up to 10MB.
-              </p>
-            </div>
+            {historyLoading ? (
+              <div className="activity-list">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} style={{ padding: "var(--sp-4)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)" }}>
+                    <div className="skeleton" style={{ width: "50%", height: 20, marginBottom: 8 }} />
+                    <div className="skeleton" style={{ width: "30%", height: 14 }} />
+                  </div>
+                ))}
+              </div>
+            ) : historyList.length > 0 ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "var(--sp-4)" }}>
+                {historyList.map((item) => {
+                  const s = Math.round(item.audit_score ?? 0);
+                  const fn = getFilename(item.file_url);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleSelectHistoryCard(item.id)}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "var(--sp-3)",
+                        padding: "var(--sp-5)",
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "var(--r-xl)",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        transition: "all var(--dur-fast, 150ms) var(--ease)",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "var(--brand-300)";
+                        e.currentTarget.style.transform = "translateY(-2px)";
+                        e.currentTarget.style.boxShadow = "var(--shadow-md)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "var(--border)";
+                        e.currentTarget.style.transform = "none";
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-2)" }}>
+                          <span style={{ fontSize: "var(--text-xl)" }}>📄</span>
+                          <span style={{ fontWeight: 700, fontSize: "var(--text-sm)", color: "var(--gray-900)" }}>
+                            {fn}
+                          </span>
+                        </div>
+                        <span className={`badge ${getScoreBadgeClass(s)}`} style={{ fontWeight: 800 }}>
+                          {s}/100
+                        </span>
+                      </div>
 
-            {error && (
-              <div className="error-banner" role="alert">
-                <span className="error-icon">⚠️</span>
-                <div>
-                  <strong>Upload Error:</strong> {error}
-                </div>
+                      <div style={{ fontSize: "var(--text-xs)", color: "var(--gray-500)", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "var(--sp-1)" }}>
+                        <span>Audited {formatRelativeTime(item.created_at)}</span>
+                        <span style={{ color: "var(--brand-600)", fontWeight: 600 }}>View Details →</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="empty-state" style={{ padding: "var(--sp-12) var(--sp-6)" }}>
+                <div className="empty-state-illustration">📄</div>
+                <p className="empty-state-title">No resumes audited yet</p>
+                <p className="empty-state-desc">
+                  Upload your first resume PDF or DOCX file to get instant AI scoring, keyword gap analysis, and ATS feedback.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setActiveView("new")}
+                >
+                  Audit Your First Resume
+                </button>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Loading state */}
-      {isLoading && (
-        <div className="panel loading-panel">
-          <div className="panel-body loading-body">
-            <div className="spinner" aria-hidden="true" />
-            <h3 className="loading-title">Analyzing Resume with Gemini AI</h3>
-            <p className="loading-subtitle">{loadingStage}</p>
-            <p className="loading-note">
-              This usually takes 8–15 seconds while Gemini performs full-text parsing and audit analysis.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Error state if upload failed after trial */}
-      {error && !isLoading && !result && (
-        <div className="text-center mt-4">
-          <button className="btn btn-secondary" onClick={handleReset}>
-            Try Uploading Again
-          </button>
-        </div>
-      )}
-
-      {/* Results View */}
-      {result && audit && (
+      {/* RESULTS DISPLAY (Used for New Upload Result OR Past Resume Details) */}
+      {((activeView === "new" && newUploadResult) || (activeView === "detail" && selectedResume)) && currentResult && audit && (
         <div className="audit-results-space">
           {/* Top action bar */}
           <div className="results-top-bar">
             <div className="results-filename">
+              {activeView === "detail" && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setActiveView("history")}
+                  style={{ marginRight: "var(--sp-3)" }}
+                >
+                  ← Back to Past Audits
+                </button>
+              )}
               <span className="file-icon">📄</span>
-              <span className="file-name">{file?.name || "Uploaded Resume"}</span>
+              <span className="file-name">{file?.name || getFilename(currentResult.file_url)}</span>
             </div>
             <div className="results-actions">
               <button
+                type="button"
                 className={`tab-btn ${activeSubTab === "audit" ? "active" : ""}`}
                 onClick={() => setActiveSubTab("audit")}
               >
                 📊 Audit Analysis
               </button>
               <button
+                type="button"
                 className={`tab-btn ${activeSubTab === "extracted" ? "active" : ""}`}
                 onClick={() => setActiveSubTab("extracted")}
               >
                 🔍 Extracted Skills &amp; Data
               </button>
-              <button className="btn btn-outline" onClick={handleReset}>
-                Audit Another Resume
-              </button>
+              {activeView === "new" && (
+                <button type="button" className="btn btn-outline" onClick={handleResetUpload}>
+                  Audit Another Resume
+                </button>
+              )}
             </div>
           </div>
 
@@ -238,7 +424,7 @@ export default function ResumeAuditComponent() {
               {/* Score & Verdict Card */}
               <div className="panel score-card">
                 <div className="panel-header">
-                  <span className="panel-title">Resume Compatibility Score</span>
+                  <span className="panel-title">Resume Quality Score</span>
                   <span className={`badge ${getScoreBadgeClass(score)}`}>
                     {audit.industry_level || "Audited"}
                   </span>
