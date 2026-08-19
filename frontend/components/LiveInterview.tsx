@@ -8,6 +8,13 @@ import {
   type InterviewRecord,
 } from "@/lib/api";
 
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 interface LiveInterviewProps {
   interview: InterviewRecord;
   onSessionComplete?: (interviewId: number) => void;
@@ -26,6 +33,11 @@ export default function LiveInterviewComponent({
   const [submittingAnswer, setSubmittingAnswer] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Speech Recognition State
+  const [isListening, setIsListening] = useState<boolean>(false);
+  const [speechSupported, setSpeechSupported] = useState<boolean>(true);
+  const recognitionRef = useRef<any>(null);
+
   // Session Progress
   const [completedCount, setCompletedCount] = useState<number>(0);
   const totalQuestions = interview.question_count || 5;
@@ -37,6 +49,90 @@ export default function LiveInterviewComponent({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isSubmittingRef = useRef<boolean>(false);
   const isFetchingQuestionRef = useRef<boolean>(false);
+
+  // Initialize SpeechRecognition
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setSpeechSupported(false);
+      return;
+    }
+
+    try {
+      const rec = new SpeechRecognition();
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.lang = "en-US";
+
+      rec.onresult = (event: any) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (transcript.trim()) {
+          setAnswerText((prev) => {
+            // Append with space if prev exists
+            const base = prev ? prev.trim() + " " : "";
+            return base + transcript.trim();
+          });
+        }
+      };
+
+      rec.onerror = (event: any) => {
+        console.warn("[SPEECH] Recognition error:", event.error);
+        setIsListening(false);
+        if (event.error === "not-allowed") {
+          setError("Microphone access was denied. Please allow mic permissions in your browser.");
+        }
+      };
+
+      rec.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = rec;
+    } catch {
+      setSpeechSupported(false);
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // ignore cleanup error
+        }
+      }
+    };
+  }, []);
+
+  const toggleListening = () => {
+    if (!speechSupported) {
+      setError("Speech recognition is not supported in this browser. Please use Google Chrome, Edge, or Safari.");
+      return;
+    }
+
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+      setIsListening(false);
+    } else {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+          setIsListening(true);
+          setError(null);
+        } catch {
+          setIsListening(false);
+        }
+      }
+    }
+  };
 
   // Auto-submit callback when timer hits 0
   const handleAutoSubmit = useCallback(async () => {
@@ -52,6 +148,10 @@ export default function LiveInterviewComponent({
     setLoadingQuestion(true);
     setError(null);
     setAnswerText("");
+    if (isListening && recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch {}
+      setIsListening(false);
+    }
     try {
       const q = await apiNextQuestion(interview.id);
       setCurrentQuestion(q);
@@ -106,6 +206,12 @@ export default function LiveInterviewComponent({
     setSubmittingAnswer(true);
     setError(null);
 
+    // Stop mic if running
+    if (isListening && recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch {}
+      setIsListening(false);
+    }
+
     // Stop timer
     if (timerRef.current) clearInterval(timerRef.current);
 
@@ -152,50 +258,37 @@ export default function LiveInterviewComponent({
   if (isSessionFinished) {
     return (
       <div style={{ maxWidth: 640, margin: "0 auto" }}>
-        <div className="card" style={{ padding: "var(--sp-12)", textAlign: "center" }}>
-          <div
-            style={{
-              width: 80, height: 80,
-              background: "var(--success-bg)",
-              borderRadius: "var(--r-full)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "2.5rem", margin: "0 auto var(--sp-6)",
-            }}
-            aria-hidden="true"
-          >
-            🎉
-          </div>
-          <h1 style={{ fontSize: "var(--text-2xl)", fontWeight: 800, color: "var(--gray-900)", marginBottom: "var(--sp-3)" }}>
-            Interview Complete!
-          </h1>
-          <p style={{ fontSize: "var(--text-sm)", color: "var(--gray-600)", maxWidth: 380, margin: "0 auto var(--sp-6)", lineHeight: 1.65 }}>
-            You completed all <strong>{totalQuestions} question{totalQuestions !== 1 ? "s" : ""}</strong> for session #{interview.id} — {interview.role}.
-          </p>
-
-          <div
-            style={{
-              background: "var(--gray-50)", border: "1px solid var(--border)",
-              borderRadius: "var(--r-lg)", padding: "var(--sp-4)",
-              textAlign: "left", maxWidth: 360, margin: "0 auto var(--sp-6)",
-              display: "flex", flexDirection: "column", gap: "var(--sp-3)",
-            }}
-          >
-            {[
-              ["Target Role", interview.role],
-              ["Interview Format", interview.interview_type],
-              ["Questions Completed", `${totalQuestions} / ${totalQuestions}`],
-            ].map(([label, value]) => (
-              <div key={label} style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
-                <span style={{ color: "var(--gray-500)" }}>{label}</span>
-                <span style={{ fontWeight: 600, color: "var(--gray-900)", textTransform: "capitalize" }}>{value}</span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: "flex", gap: "var(--sp-3)", justifyContent: "center", flexWrap: "wrap" }}>
-            {onExit && (
-              <button className="btn btn-secondary" onClick={onExit}>
-                ← Back to Setup
+        <div className="card text-center" style={{ padding: "var(--sp-8)" }}>
+          <div className="card-body">
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                background: "var(--success-bg)",
+                color: "var(--success-text)",
+                borderRadius: "var(--r-full)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "2rem",
+                margin: "0 auto var(--sp-4)",
+              }}
+            >
+              🎉
+            </div>
+            <h2 className="text-title" style={{ fontSize: "var(--text-2xl)", marginBottom: "var(--sp-2)" }}>
+              Mock Interview Completed!
+            </h2>
+            <p className="text-sm" style={{ color: "var(--gray-600)", marginBottom: "var(--sp-6)" }}>
+              You have completed all <strong>{totalQuestions}</strong> questions in this adaptive mock session.
+            </p>
+            {onSessionComplete && (
+              <button
+                type="button"
+                className="btn btn-primary btn-lg"
+                onClick={() => onSessionComplete(interview.id)}
+              >
+                📊 View Final Performance Report →
               </button>
             )}
           </div>
@@ -272,7 +365,7 @@ export default function LiveInterviewComponent({
       {error && (
         <div className="alert alert-error" role="alert" style={{ justifyContent: "space-between" }}>
           <span>⚠️ {error}</span>
-          <button className="btn btn-sm btn-secondary" onClick={loadNextQuestion}>
+          <button type="button" className="btn btn-sm btn-secondary" onClick={loadNextQuestion}>
             Retry
           </button>
         </div>
@@ -329,7 +422,6 @@ export default function LiveInterviewComponent({
                     fontWeight: 700,
                     color: timeLeft <= 15 ? "var(--danger-text)" : "var(--warning-text)",
                     fontFamily: "monospace",
-                    animation: timeLeft <= 15 ? "pulse 1s infinite" : "none",
                   }}
                   role="timer"
                   aria-live="polite"
@@ -367,18 +459,46 @@ export default function LiveInterviewComponent({
             {/* Answer area */}
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-3)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--sp-2)" }}>
-                <label htmlFor="answer-input" className="input-label">
-                  Your Response
-                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-3)" }}>
+                  <label htmlFor="answer-input" className="input-label">
+                    Your Response
+                  </label>
+
+                  {/* Speech-to-Text Microphone Button */}
+                  <button
+                    type="button"
+                    onClick={toggleListening}
+                    disabled={submittingAnswer}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "var(--sp-2)",
+                      padding: "4px 12px",
+                      borderRadius: "var(--r-full)",
+                      fontSize: "var(--text-xs)",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      border: isListening ? "1px solid var(--danger-border)" : "1px solid var(--brand-300)",
+                      background: isListening ? "var(--danger-bg)" : "var(--brand-50)",
+                      color: isListening ? "var(--danger-text)" : "var(--brand-700)",
+                      transition: "all var(--dur-fast)",
+                    }}
+                    title={isListening ? "Click to stop recording" : "Speak out your answer via microphone"}
+                  >
+                    {isListening ? "🔴 Recording... (Click to stop)" : "🎙️ Speak Answer"}
+                  </button>
+                </div>
+
                 <span style={{ fontSize: "var(--text-xs)", color: "var(--gray-400)" }}>
                   {answerText.length} chars · Ctrl+Enter to submit
                 </span>
               </div>
+
               <textarea
                 id="answer-input"
                 className="textarea"
                 style={{ minHeight: 200, fontSize: "var(--text-base)", lineHeight: 1.7 }}
-                placeholder="Type your answer clearly. Explain your thought process, trade-offs, and technical reasoning…"
+                placeholder="Type or click '🎙️ Speak Answer' to dictate your thoughts. Explain trade-offs and technical reasoning…"
                 value={answerText}
                 onChange={(e) => setAnswerText(e.target.value)}
                 onKeyDown={handleKeyDown}

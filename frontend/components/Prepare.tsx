@@ -1,12 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   generatePrepQuestions,
   getPrepQuestions,
   getPrepFilters,
   type PrepQuestionRecord,
 } from "@/lib/api";
+
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 
 const PRESET_ROLES = [
   "Senior Backend Engineer",
@@ -91,11 +98,73 @@ export default function PrepareComponent() {
   const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
+  // Practice Dictation State per Question
+  const [practiceAnswers, setPracticeAnswers] = useState<Record<number, string>>({});
+  const [listeningQId, setListeningQId] = useState<number | null>(null);
+  const recognitionRef = useRef<any>(null);
+
   // Initial load
   useEffect(() => {
     fetchQuestions();
     fetchFilterOptions();
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      try {
+        const rec = new SpeechRecognition();
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.lang = "en-US";
+        recognitionRef.current = rec;
+      } catch {
+        // Speech not supported
+      }
+    }
   }, []);
+
+  const togglePracticeDictation = (qId: number) => {
+    if (!recognitionRef.current) {
+      alert("Speech recognition is not supported in this browser. Please try Chrome, Edge, or Safari.");
+      return;
+    }
+
+    if (listeningQId === qId) {
+      try { recognitionRef.current.stop(); } catch {}
+      setListeningQId(null);
+    } else {
+      if (listeningQId !== null) {
+        try { recognitionRef.current.stop(); } catch {}
+      }
+
+      recognitionRef.current.onresult = (event: any) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (transcript.trim()) {
+          setPracticeAnswers((prev) => ({
+            ...prev,
+            [qId]: (prev[qId] ? prev[qId].trim() + " " : "") + transcript.trim(),
+          }));
+        }
+      };
+
+      recognitionRef.current.onerror = () => {
+        setListeningQId(null);
+      };
+
+      recognitionRef.current.onend = () => {
+        setListeningQId(null);
+      };
+
+      try {
+        recognitionRef.current.start();
+        setListeningQId(qId);
+      } catch {
+        setListeningQId(null);
+      }
+    }
+  };
 
   const fetchQuestions = async () => {
     setLoading(true);
@@ -200,7 +269,7 @@ export default function PrepareComponent() {
       <div className="panel prep-gen-panel">
         <div className="panel-header">
           <span className="panel-title">✨ Generate New Practice Questions</span>
-          <span className="badge badge-purple">Gemini 3.6 AI</span>
+          <span className="badge badge-purple">Gemini 3.5 AI</span>
         </div>
         <div className="panel-body">
           <div className="gen-controls-grid">
@@ -366,6 +435,8 @@ export default function PrepareComponent() {
 
           {filteredQuestions.map((q, index) => {
             const isExpanded = expandedId === q.id;
+            const isRec = listeningQId === q.id;
+            const pAns = practiceAnswers[q.id] || "";
             return (
               <div key={q.id} className={`panel question-card ${isExpanded ? "expanded" : ""}`}>
                 <div
@@ -397,6 +468,42 @@ export default function PrepareComponent() {
 
                     <div className="answer-content">
                       {renderFormattedAnswer(q.model_answer_text)}
+                    </div>
+
+                    {/* Interactive Voice Practice Section */}
+                    <div style={{ marginTop: "var(--sp-6)", paddingTop: "var(--sp-4)", borderTop: "1px dashed var(--border)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--sp-2)", flexWrap: "wrap", gap: "var(--sp-2)" }}>
+                        <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--gray-600)" }}>
+                          🗣️ Voice Practice Area
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => togglePracticeDictation(q.id)}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "var(--sp-2)",
+                            padding: "4px 12px",
+                            borderRadius: "var(--r-full)",
+                            fontSize: "var(--text-xs)",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            border: isRec ? "1px solid var(--danger-border)" : "1px solid var(--brand-300)",
+                            background: isRec ? "var(--danger-bg)" : "var(--brand-50)",
+                            color: isRec ? "var(--danger-text)" : "var(--brand-700)",
+                          }}
+                        >
+                          {isRec ? "🔴 Recording... (Click to stop)" : "🎙️ Practice Speaking Answer"}
+                        </button>
+                      </div>
+
+                      <textarea
+                        className="textarea"
+                        style={{ minHeight: 90, fontSize: "var(--text-sm)" }}
+                        placeholder="Click '🎙️ Practice Speaking Answer' to speak your answer out loud and practice your verbal delivery..."
+                        value={pAns}
+                        onChange={(e) => setPracticeAnswers({ ...practiceAnswers, [q.id]: e.target.value })}
+                      />
                     </div>
                   </div>
                 )}
