@@ -274,7 +274,7 @@ Rules:
         )
         q_text = res.get("question_text", "").strip()
         if not q_text:
-            raise AIServiceError("Gemini returned empty question_text.")
+            raise ValueError("Gemini returned empty question_text.")
     except Exception as exc:
         logger.error("[LANGGRAPH] Gemini question generation failed: %s", exc)
         raise exc
