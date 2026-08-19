@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { apiGetCandidateProgress, type CandidateProgressRecord } from "@/lib/api";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 interface ProgressAnalyticsProps {
   onSelectReport?: (interviewId: number) => void;
@@ -58,6 +67,14 @@ export default function ProgressAnalyticsComponent({
       ? (history.reduce((acc, h) => acc + h.overall_score, 0) / completedCount).toFixed(1)
       : null;
 
+  const chartData = history.map((rec, index) => ({
+    session: `Session #${rec.interview_id}`,
+    shortLabel: `#${rec.interview_id}`,
+    score: Number(rec.overall_score.toFixed(1)),
+    role: rec.role,
+    date: rec.completed_at ? new Date(rec.completed_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : `S${index + 1}`,
+  }));
+
   /* ── Render ──────────────────────────────────────────────── */
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-6)" }}>
@@ -110,7 +127,7 @@ export default function ProgressAnalyticsComponent({
         {[
           { icon: "🎯", color: "var(--brand-50)", label: "Completed Sessions", value: String(completedCount) },
           { icon: "🏆", color: "var(--success-bg)", label: "Highest Score", value: completedCount > 0 ? `${maxScore.toFixed(1)} / 10` : "—" },
-          { icon: "📈", color: "#faf5ff", label: "Average Score", value: avgScore ? `${avgScore} / 10` : "—" },
+          { icon: "📈", color: "var(--gray-50)", label: "Average Score", value: avgScore ? `${avgScore} / 10` : "—" },
         ].map((s) => (
           <div key={s.label} className="card card-hover">
             <div className="card-body" style={{ display: "flex", alignItems: "center", gap: "var(--sp-4)" }}>
@@ -150,77 +167,63 @@ export default function ProgressAnalyticsComponent({
           </div>
         </div>
         <div className="card-body">
-          {completedCount <= 1 ? (
+          {completedCount < 2 ? (
             <div className="empty-state" style={{ padding: "var(--sp-12) var(--sp-6)" }}>
               <div className="empty-state-illustration">📈</div>
               <p className="empty-state-title">Complete more sessions to see trends</p>
               <p className="empty-state-desc">
                 You have <strong>{completedCount}</strong> completed session.
                 Complete at least 2 sessions to unlock score trajectory charts and identify
-                improvement patterns.
+                improvement patterns over time.
               </p>
             </div>
           ) : (
-            <div>
-              {/* Bar chart */}
-              <div
-                style={{
-                  height: 180,
-                  display: "flex",
-                  alignItems: "flex-end",
-                  justifyContent: "space-between",
-                  gap: "var(--sp-3)",
-                  borderBottom: "1.5px solid var(--border)",
-                  paddingBottom: "var(--sp-2)",
-                  paddingLeft: "var(--sp-2)",
-                  paddingRight: "var(--sp-2)",
-                }}
-              >
-                {history.map((rec) => {
-                  const heightPct = Math.max(8, (rec.overall_score / 10) * 100);
-                  return (
-                    <div
-                      key={rec.interview_id}
-                      style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--sp-1)", position: "relative" }}
-                      title={`Session #${rec.interview_id}: ${rec.overall_score.toFixed(1)}/10 — ${rec.role}`}
-                    >
-                      <span style={{ fontSize: "var(--text-xs)", fontWeight: 800, color: "var(--gray-800)" }}>
-                        {rec.overall_score.toFixed(1)}
-                      </span>
-                      <div
-                        style={{
-                          width: "100%",
-                          height: `${heightPct}%`,
-                          background: "var(--brand-500)",
-                          borderRadius: "var(--r-md) var(--r-md) 0 0",
-                          transition: "background var(--dur-fast)",
-                          cursor: "default",
-                        }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--brand-600)"; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--brand-500)"; }}
-                      />
-                      <span style={{ fontSize: 10, color: "var(--gray-400)", fontWeight: 600 }}>
-                        #{rec.interview_id}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: "var(--text-xs)",
-                  color: "var(--gray-400)",
-                  marginTop: "var(--sp-2)",
-                  fontWeight: 600,
-                  paddingLeft: "var(--sp-2)",
-                  paddingRight: "var(--sp-2)",
-                }}
-              >
-                <span>Earliest session</span>
-                <span>Latest session</span>
-              </div>
+            <div style={{ width: "100%", height: 260, marginTop: "var(--sp-2)" }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--brand-500)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="var(--brand-500)" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--gray-200)" />
+                  <XAxis
+                    dataKey="shortLabel"
+                    stroke="var(--gray-400)"
+                    tick={{ fill: "var(--gray-600)", fontSize: 12, fontWeight: 600 }}
+                  />
+                  <YAxis
+                    domain={[0, 10]}
+                    stroke="var(--gray-400)"
+                    tick={{ fill: "var(--gray-600)", fontSize: 12, fontWeight: 600 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border-strong)",
+                      borderRadius: "var(--r-lg)",
+                      boxShadow: "var(--shadow-md)",
+                      fontSize: "var(--text-xs)",
+                    }}
+                    formatter={(value: any) => [`${value} / 10`, "Overall Score"]}
+                    labelFormatter={(label: any, items: any) => {
+                      const item = items[0]?.payload;
+                      return item ? `${item.session} (${item.role})` : label;
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="score"
+                    stroke="var(--brand-600)"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#scoreGradient)"
+                    dot={{ r: 5, fill: "var(--brand-600)", stroke: "#ffffff", strokeWidth: 2 }}
+                    activeDot={{ r: 7, fill: "var(--brand-700)" }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           )}
         </div>

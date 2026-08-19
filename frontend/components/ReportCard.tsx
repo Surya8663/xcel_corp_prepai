@@ -7,6 +7,15 @@ import {
   type InterviewReportRecord,
   type DetailedQuestionAnswer,
 } from "@/lib/api";
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 
 interface ReportCardProps {
   interviewId: number;
@@ -29,9 +38,9 @@ function scoreLabel(score: number) {
 }
 
 function scoreBadgeStyle(score: number): React.CSSProperties {
-  if (score >= 6.5) return { background: "rgba(16,185,129,0.15)", color: "#d1fae5" };
-  if (score >= 5.0) return { background: "rgba(99,102,241,0.2)", color: "#c7d2fe" };
-  return { background: "rgba(245,158,11,0.2)", color: "#fde68a" };
+  if (score >= 6.5) return { background: "var(--success-bg)", color: "var(--success-text)", border: "1px solid var(--success-border)" };
+  if (score >= 5.0) return { background: "var(--brand-50)", color: "var(--brand-700)", border: "1px solid var(--brand-200)" };
+  return { background: "var(--warning-bg)", color: "var(--warning-text)", border: "1px solid var(--warning-border)" };
 }
 
 function formatItemText(item: any): string {
@@ -103,7 +112,7 @@ export default function ReportCardComponent({
             <span>{error || "Report not available."}</span>
           </div>
           {onBack && (
-            <button className="btn btn-secondary" onClick={onBack}>
+            <button type="button" className="btn btn-secondary" onClick={onBack}>
               ← Back to Reports
             </button>
           )}
@@ -111,6 +120,15 @@ export default function ReportCardComponent({
       </div>
     );
   }
+
+  const radarData = [
+    { metric: "Technical", score: Number(report.avg_technical_score.toFixed(1)), fullMark: 10 },
+    { metric: "Relevance", score: Number(report.avg_relevance_score.toFixed(1)), fullMark: 10 },
+    { metric: "Completeness", score: Number(report.avg_completeness_score.toFixed(1)), fullMark: 10 },
+    { metric: "Clarity", score: Number(report.avg_clarity_score.toFixed(1)), fullMark: 10 },
+  ];
+
+  const hasRadarData = radarData.some((d) => d.score > 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-6)" }}>
@@ -135,11 +153,12 @@ export default function ReportCardComponent({
         </div>
       </div>
 
-      {/* ── Dark banner ───────────────────────── */}
+      {/* ── Light-themed Hero Header ───────────────────────── */}
       <div
         style={{
-          background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)",
-          color: "#fff",
+          background: "linear-gradient(135deg, var(--brand-50) 0%, var(--surface-raised) 100%)",
+          border: "1px solid var(--brand-200)",
+          color: "var(--gray-900)",
           borderRadius: "var(--r-2xl)",
           padding: "var(--sp-8)",
           display: "flex",
@@ -148,30 +167,34 @@ export default function ReportCardComponent({
           justifyContent: "space-between",
           gap: "var(--sp-8)",
           flexWrap: "wrap",
-          boxShadow: "var(--shadow-lg)",
+          boxShadow: "var(--shadow-md)",
         }}
       >
         {/* Left: role + summary */}
         <div style={{ flex: 1, minWidth: 240 }}>
           <div
             style={{
-              display: "inline-flex", alignItems: "center", gap: "var(--sp-2)",
-              padding: "3px 12px",
-              background: "rgba(99,102,241,0.2)",
-              color: "#a5b4fc",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "var(--sp-2)",
+              padding: "4px 12px",
+              background: "var(--surface)",
+              color: "var(--brand-700)",
               borderRadius: "var(--r-full)",
-              fontSize: "var(--text-xs)", fontWeight: 700,
-              textTransform: "uppercase", letterSpacing: "0.06em",
+              fontSize: "var(--text-xs)",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
               marginBottom: "var(--sp-3)",
-              border: "1px solid rgba(99,102,241,0.25)",
+              border: "1px solid var(--brand-200)",
             }}
           >
             🎯 Performance Report Card
           </div>
-          <h1 style={{ fontSize: "var(--text-2xl)", fontWeight: 800, lineHeight: 1.2, letterSpacing: "-0.3px", marginBottom: "var(--sp-3)" }}>
+          <h1 style={{ fontSize: "var(--text-2xl)", fontWeight: 800, lineHeight: 1.2, letterSpacing: "-0.3px", marginBottom: "var(--sp-3)", color: "var(--gray-900)" }}>
             {report.role}
           </h1>
-          <p style={{ fontSize: "var(--text-sm)", color: "#94a3b8", lineHeight: 1.65, maxWidth: 500 }}>
+          <p style={{ fontSize: "var(--text-sm)", color: "var(--gray-600)", lineHeight: 1.65, maxWidth: 500 }}>
             {report.executive_summary ||
               `Evaluated across ${report.questions.length} question${report.questions.length !== 1 ? "s" : ""} in ${report.interview_type} format under ${report.difficulty_mode} difficulty mode.`}
           </p>
@@ -180,31 +203,31 @@ export default function ReportCardComponent({
         {/* Right: score gauge */}
         <div
           style={{
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.15)",
+            background: "var(--surface)",
+            border: "1px solid var(--border-strong)",
             borderRadius: "var(--r-xl)",
             padding: "var(--sp-6) var(--sp-8)",
             textAlign: "center",
-            backdropFilter: "blur(8px)",
+            boxShadow: "var(--shadow-sm)",
             minWidth: 180,
             flexShrink: 0,
           }}
         >
-          <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#94a3b8", marginBottom: "var(--sp-2)" }}>
+          <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--gray-500)", marginBottom: "var(--sp-2)" }}>
             Overall Score
           </div>
-          <div style={{ fontSize: "3rem", fontWeight: 900, letterSpacing: "-2px", lineHeight: 1, color: "#fff" }}>
+          <div style={{ fontSize: "3rem", fontWeight: 900, letterSpacing: "-2px", lineHeight: 1, color: "var(--gray-900)" }}>
             {report.overall_score.toFixed(1)}
-            <span style={{ fontSize: "var(--text-xl)", fontWeight: 400, color: "#64748b" }}> /10</span>
+            <span style={{ fontSize: "var(--text-xl)", fontWeight: 400, color: "var(--gray-400)" }}> /10</span>
           </div>
           <div
             style={{
               marginTop: "var(--sp-3)",
               display: "inline-block",
-              padding: "3px 12px",
+              padding: "4px 12px",
               borderRadius: "var(--r-full)",
               fontSize: "var(--text-xs)",
-              fontWeight: 600,
+              fontWeight: 700,
               ...scoreBadgeStyle(report.overall_score),
             }}
           >
@@ -213,54 +236,85 @@ export default function ReportCardComponent({
         </div>
       </div>
 
-      {/* ── Dimensional scores ────────────────── */}
+      {/* ── Dimensional Radar Chart Scoring ────────────────── */}
       <div className="card">
         <div className="card-header">
           <div>
             <h2 className="text-title">Dimensional Scoring</h2>
             <p className="text-sm" style={{ marginTop: "var(--sp-1)" }}>
-              Aggregate performance computed from real per-question evaluation vectors.
+              Aggregate radar breakdown across core competency dimensions (0–10 scale).
             </p>
           </div>
         </div>
         <div className="card-body">
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: "var(--sp-4)",
-            }}
-          >
-            {METRICS.map((m) => {
-              const score = report[m.key as keyof InterviewReportRecord] as number;
-              return (
-                <div
-                  key={m.key}
-                  style={{
-                    padding: "var(--sp-4)",
-                    background: "var(--gray-50)",
-                    borderRadius: "var(--r-lg)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--sp-3)" }}>
-                    <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--gray-800)" }}>{m.label}</span>
-                    <span style={{ fontWeight: 800, color: "var(--gray-900)", fontSize: "var(--text-base)" }}>{score.toFixed(1)}</span>
-                  </div>
-                  <div className="progress-bar-track">
-                    <div
-                      className="progress-bar-fill"
-                      style={{ width: `${(score / 10) * 100}%`, background: m.color }}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "var(--sp-6)", alignItems: "center" }}>
+            {/* Recharts Radar Chart */}
+            <div style={{ width: "100%", height: 300, display: "flex", justifyContent: "center", alignItems: "center" }}>
+              {hasRadarData ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
+                    <PolarGrid stroke="var(--gray-200)" />
+                    <PolarAngleAxis
+                      dataKey="metric"
+                      stroke="var(--gray-700)"
+                      tick={{ fill: "var(--gray-700)", fontSize: 12, fontWeight: 600 }}
                     />
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs)", color: "var(--gray-400)", marginTop: "var(--sp-2)" }}>
-                    <span>0.0</span>
-                    <span style={{ fontWeight: 600 }}>{m.weight} weight</span>
-                    <span>10.0</span>
-                  </div>
+                    <PolarRadiusAxis angle={30} domain={[0, 10]} stroke="var(--gray-300)" />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--border-strong)",
+                        borderRadius: "var(--r-md)",
+                        boxShadow: "var(--shadow-md)",
+                        fontSize: "var(--text-xs)",
+                        fontWeight: 600,
+                      }}
+                    />
+                    <Radar
+                      name="Dimension Score"
+                      dataKey="score"
+                      stroke="var(--brand-500)"
+                      fill="var(--brand-500)"
+                      fillOpacity={0.3}
+                      strokeWidth={2}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ textAlign: "center", color: "var(--gray-400)", padding: "var(--sp-6)" }}>
+                  <div style={{ fontSize: "var(--text-2xl)", marginBottom: "var(--sp-2)" }}>📊</div>
+                  <p style={{ fontSize: "var(--text-xs)", fontWeight: 600 }}>Initial session evaluation metrics</p>
                 </div>
-              );
-            })}
+              )}
+            </div>
+
+            {/* Score Breakdown Cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--sp-3)" }}>
+              {METRICS.map((m) => {
+                const score = report[m.key as keyof InterviewReportRecord] as number;
+                return (
+                  <div
+                    key={m.key}
+                    style={{
+                      padding: "var(--sp-4)",
+                      background: "var(--gray-50)",
+                      borderRadius: "var(--r-xl)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--gray-500)", marginBottom: "var(--sp-1)" }}>
+                      {m.label}
+                    </div>
+                    <div style={{ fontSize: "var(--text-xl)", fontWeight: 800, color: "var(--gray-900)" }}>
+                      {score.toFixed(1)} <span style={{ fontSize: "var(--text-xs)", fontWeight: 400, color: "var(--gray-400)" }}>/ 10</span>
+                    </div>
+                    <div style={{ fontSize: "var(--text-xs)", color: "var(--gray-400)", marginTop: "var(--sp-1)" }}>
+                      Weight: {m.weight}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
