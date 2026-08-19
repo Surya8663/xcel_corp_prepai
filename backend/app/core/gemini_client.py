@@ -32,7 +32,7 @@ def _get_client() -> genai.Client:
     return _client
 
 
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = get_settings().GEMINI_MODEL
 
 
 async def generate_text(
