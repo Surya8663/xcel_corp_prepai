@@ -346,6 +346,17 @@ async def generate_next_interview_question(
     if not interview:
         raise ValueError(f"Interview session #{interview_id} not found.")
 
+    # 1b. Idempotency Check: if the most recent question is unanswered, return it as-is
+    if interview.questions:
+        sorted_qs = sorted(interview.questions, key=lambda x: x.order_index)
+        latest_q = sorted_qs[-1]
+        if latest_q.answer is None:
+            logger.info(
+                "[LANGGRAPH] Idempotent call: returning existing unanswered Question ID=%d (order=%d) for session #%d",
+                latest_q.id, latest_q.order_index, interview_id,
+            )
+            return latest_q
+
     # 2. Extract Context details
     r_skills: list[str] = []
     r_projects: list[str] = []

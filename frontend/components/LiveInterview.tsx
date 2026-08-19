@@ -36,6 +36,7 @@ export default function LiveInterviewComponent({
   const [initialTimer, setInitialTimer] = useState<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isSubmittingRef = useRef<boolean>(false);
+  const isFetchingQuestionRef = useRef<boolean>(false);
 
   // Auto-submit callback when timer hits 0
   const handleAutoSubmit = useCallback(async () => {
@@ -46,6 +47,8 @@ export default function LiveInterviewComponent({
 
   // Load next question on component mount or step advance
   const loadNextQuestion = useCallback(async () => {
+    if (isFetchingQuestionRef.current) return;
+    isFetchingQuestionRef.current = true;
     setLoadingQuestion(true);
     setError(null);
     setAnswerText("");
@@ -66,6 +69,7 @@ export default function LiveInterviewComponent({
       setError(msg);
     } finally {
       setLoadingQuestion(false);
+      isFetchingQuestionRef.current = false;
     }
   }, [interview.id]);
 
