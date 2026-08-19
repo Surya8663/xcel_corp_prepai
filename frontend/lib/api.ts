@@ -340,3 +340,23 @@ export async function apiGetCandidateProgress(): Promise<CandidateProgressRecord
   await checkResponseOk(res, "Failed to fetch candidate progress history");
   return res.json();
 }
+
+export interface InterviewSessionItem {
+  id: number;
+  candidate_id: number;
+  role: string;
+  interview_type: string;
+  difficulty_mode: string;
+  duration_minutes?: number | null;
+  question_count: number;
+  status: string;
+  created_at: string;
+  completed_at?: string | null;
+  overall_score?: number | null;
+}
+
+export async function apiListInterviews(): Promise<InterviewSessionItem[]> {
+  const res = await fetch(`${API_BASE_URL}/interviews`);
+  await checkResponseOk(res, "Failed to list interview sessions");
+  return res.json();
+}

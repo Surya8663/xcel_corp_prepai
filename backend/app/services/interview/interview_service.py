@@ -11,11 +11,13 @@ import logging
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
     DifficultyMode,
     Interview,
+    InterviewQuestion,
     InterviewStatus,
     InterviewType,
     JobDescription,
@@ -171,3 +173,51 @@ async def get_interview_by_id(
     stmt = select(Interview).where(Interview.id == interview_id)
     res = await db.execute(stmt)
     return res.scalar_one_or_none()
+
+
+async def get_all_interviews_for_candidate(
+    db: AsyncSession,
+    candidate_id: int = 1,
+) -> list[dict[str, Any]]:
+    """
+    Fetch all interview sessions for candidate #1 ordered by created_at DESC.
+    Returns session metadata, question counts, and average overall score if completed/answered.
+    """
+    stmt = (
+        select(Interview)
+        .options(
+            selectinload(Interview.questions).selectinload(InterviewQuestion.answer),
+            selectinload(Interview.report),
+        )
+        .where(Interview.candidate_id == candidate_id)
+        .order_by(Interview.created_at.desc())
+    )
+
+    res = await db.execute(stmt)
+    interviews = res.scalars().all()
+
+    results: list[dict[str, Any]] = []
+    for item in interviews:
+        overall_scores: list[float] = []
+        for q in item.questions:
+            if q.answer and q.answer.overall_score is not None:
+                overall_scores.append(q.answer.overall_score)
+
+        avg_ovr = round(float(sum(overall_scores) / len(overall_scores)), 1) if overall_scores else None
+
+        results.append({
+            "id": item.id,
+            "candidate_id": item.candidate_id,
+            "role": item.role,
+            "interview_type": item.interview_type.value,
+            "difficulty_mode": item.difficulty_mode.value,
+            "duration_minutes": item.duration_minutes,
+            "question_count": len(item.questions) or 5,
+            "status": item.status.value,
+            "created_at": item.created_at,
+            "completed_at": item.completed_at,
+            "overall_score": avg_ovr,
+        })
+
+    return results
+

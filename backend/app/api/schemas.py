@@ -95,9 +95,24 @@ class InterviewResponse(BaseModel):
     duration_minutes: int | None = 30
     question_count: int = 5
     status: str = "not_started"
-    resume_id: int | None = None
-    job_description_id: int | None = None
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class InterviewSessionItem(BaseModel):
+    id: int
+    candidate_id: int
+    role: str
+    interview_type: str
+    difficulty_mode: str
+    duration_minutes: int | None = 30
+    question_count: int = 5
+    status: str
+    created_at: datetime
+    completed_at: datetime | None = None
+    overall_score: float | None = None
 
     class Config:
         from_attributes = True

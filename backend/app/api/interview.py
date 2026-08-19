@@ -14,16 +14,23 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.schemas import (
+    CandidateProgressRecord,
     CreateInterviewRequest,
+    InterviewQuestionResponse,
+    InterviewReportResponse,
     InterviewResponse,
+    InterviewSessionItem,
     JobDescriptionCreateRequest,
     JobDescriptionResponse,
+    SubmitAnswerRequest,
+    SubmitAnswerResponse,
 )
 from app.core.database import get_db
 from app.services.ai.gemini_service import GeminiService, get_gemini_service
 from app.services.interview.interview_service import (
     create_interview,
     create_job_description,
+    get_all_interviews_for_candidate,
     get_interview_by_id,
     get_job_descriptions,
 )
@@ -394,3 +401,33 @@ async def api_get_candidate_progress(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch progress history: {str(exc)}",
         ) from exc
+
+
+# ── 9. List All Candidate Interviews Endpoint ─────────────────────────────────
+
+@router.get(
+    "/interviews",
+    response_model=List[InterviewSessionItem],
+)
+@router.get(
+    "/v1/interviews",
+    response_model=List[InterviewSessionItem],
+    include_in_schema=False,
+)
+async def api_list_interviews(
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Fetch all interview sessions (scheduled, in_progress, completed) for candidate #1
+    ordered by created_at descending.
+    """
+    try:
+        interviews = await get_all_interviews_for_candidate(db=db, candidate_id=1)
+        return interviews
+    except Exception as exc:
+        logger.exception("Failed to list interviews: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list interviews: {str(exc)}",
+        ) from exc
+
