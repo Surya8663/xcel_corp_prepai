@@ -65,14 +65,14 @@ const DIFFICULTY_MODES = [
     id: "Hard",
     title: "Hard",
     icon: "🔥",
-    badgeClass: "badge-purple",
+    badgeClass: "badge-amber",
     description: "Complex distributed systems, performance bottleneck analysis, and deep architectural questions.",
   },
   {
     id: "Adaptive",
     title: "Adaptive AI",
     icon: "🧠",
-    badgeClass: "badge-orange",
+    badgeClass: "badge-purple",
     description: "Starts at Medium difficulty and dynamically escalates or softens based on your answer evaluation in real time.",
   },
 ];
@@ -193,21 +193,39 @@ export default function InterviewSetupComponent({ onInterviewCreated }: Intervie
   };
 
   return (
-    <div className="interview-setup-container max-w-5xl mx-auto p-6">
+    <div style={{ maxWidth: 860, margin: "0 auto" }}>
       {/* Header Banner */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold uppercase tracking-wider mb-2">
+      <div style={{ textAlign: "center", marginBottom: "var(--sp-8)" }}>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "var(--sp-2)",
+            padding: "4px 12px",
+            background: "var(--brand-50)",
+            color: "var(--brand-700)",
+            borderRadius: "var(--r-full)",
+            fontSize: "var(--text-xs)",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            marginBottom: "var(--sp-3)",
+            border: "1px solid var(--brand-200)",
+          }}
+        >
           <span>🚀</span> Live AI Mock Interview
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Configure Your Interview Session</h1>
-        <p className="text-gray-600 max-w-2xl mx-auto">
+        <h1 className="dashboard-greeting" style={{ fontSize: "var(--text-3xl)", marginBottom: "var(--sp-2)" }}>
+          Configure Your Interview Session
+        </h1>
+        <p className="dashboard-subtitle" style={{ maxWidth: 560, margin: "0 auto" }}>
           Tailor your mock interview to your target role, difficulty level, and optional resume or job description context before starting.
         </p>
       </div>
 
       {/* Stepper Progress Bar */}
-      <div className="stepper-header mb-8">
-        <div className="flex justify-between items-center relative z-10">
+      <div style={{ marginBottom: "var(--sp-8)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}>
           {[
             { step: 1, label: "Role" },
             { step: 2, label: "Interview Type" },
@@ -217,28 +235,60 @@ export default function InterviewSetupComponent({ onInterviewCreated }: Intervie
           ].map((s) => {
             const isActive = currentStep === s.step;
             const isCompleted = currentStep > s.step;
+
+            let circleBg = "var(--gray-100)";
+            let circleColor = "var(--gray-500)";
+            let circleShadow = "none";
+
+            if (isCompleted) {
+              circleBg = "var(--brand-500)";
+              circleColor = "#ffffff";
+            } else if (isActive) {
+              circleBg = "var(--brand-600)";
+              circleColor = "#ffffff";
+              circleShadow = "0 0 0 4px var(--brand-100)";
+            }
+
             return (
               <button
                 key={s.step}
                 type="button"
                 onClick={() => setCurrentStep(s.step)}
-                className={`step-item flex flex-col items-center gap-1 group focus:outline-none`}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "var(--sp-1)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
               >
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
-                    isCompleted
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : isActive
-                      ? "bg-blue-600 text-white ring-4 ring-blue-100 shadow-md"
-                      : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
-                  }`}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: "var(--r-full)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 700,
+                    fontSize: "var(--text-sm)",
+                    background: circleBg,
+                    color: circleColor,
+                    boxShadow: circleShadow,
+                    transition: "all var(--dur-fast, 150ms) var(--ease)",
+                  }}
                 >
                   {isCompleted ? "✓" : s.step}
                 </div>
                 <span
-                  className={`text-xs font-medium ${
-                    isActive ? "text-blue-600 font-bold" : "text-gray-500"
-                  }`}
+                  style={{
+                    fontSize: "var(--text-xs)",
+                    fontWeight: isActive ? 700 : 500,
+                    color: isActive ? "var(--brand-600)" : "var(--gray-500)",
+                  }}
                 >
                   {s.label}
                 </span>
@@ -249,107 +299,150 @@ export default function InterviewSetupComponent({ onInterviewCreated }: Intervie
       </div>
 
       {error && (
-        <div className="error-banner mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
-          <span className="text-xl">⚠️</span>
-          <div className="text-sm font-medium">{error}</div>
+        <div className="alert alert-error" role="alert" style={{ marginBottom: "var(--sp-6)" }}>
+          <span>⚠️</span>
+          <div>{error}</div>
         </div>
       )}
 
       {/* Success Created State */}
       {createdInterview ? (
-        <div className="panel p-8 text-center bg-white rounded-2xl border border-gray-200 shadow-xl max-w-xl mx-auto">
-          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+        <div className="panel" style={{ padding: "var(--sp-8)", textAlign: "center", maxWidth: 560, margin: "0 auto" }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              background: "var(--success-bg)",
+              color: "var(--success-text)",
+              borderRadius: "var(--r-full)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "var(--text-2xl)",
+              margin: "0 auto var(--sp-4)",
+            }}
+          >
             ✨
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Interview Session Created!</h2>
-          <p className="text-gray-600 text-sm mb-6">
-            Session <strong className="text-gray-900">#{createdInterview.id}</strong> has been configured and saved in PostgreSQL with status{" "}
-            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full uppercase">
-              {createdInterview.status}
-            </span>.
+          <h2 style={{ fontSize: "var(--text-2xl)", fontWeight: 800, color: "var(--gray-900)", marginBottom: "var(--sp-2)" }}>
+            Interview Session Created!
+          </h2>
+          <p style={{ fontSize: "var(--text-sm)", color: "var(--gray-600)", marginBottom: "var(--sp-6)" }}>
+            Session <strong>#{createdInterview.id}</strong> has been configured and saved in PostgreSQL with status{" "}
+            <span className="badge badge-blue">{createdInterview.status}</span>.
           </p>
 
-          <div className="bg-gray-50 rounded-xl p-4 text-left mb-6 space-y-2 text-sm border border-gray-100">
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Target Role:</span>
-              <span className="font-semibold text-gray-900">{createdInterview.role}</span>
+          <div
+            style={{
+              background: "var(--gray-50)",
+              borderRadius: "var(--r-xl)",
+              padding: "var(--sp-5)",
+              textAlign: "left",
+              marginBottom: "var(--sp-6)",
+              border: "1px solid var(--border)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--sp-3)",
+              fontSize: "var(--text-sm)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: "var(--sp-2)" }}>
+              <span style={{ color: "var(--gray-500)" }}>Target Role:</span>
+              <strong style={{ color: "var(--gray-900)" }}>{createdInterview.role}</strong>
             </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Interview Type:</span>
-              <span className="font-semibold text-gray-900 capitalize">{createdInterview.interview_type}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: "var(--sp-2)" }}>
+              <span style={{ color: "var(--gray-500)" }}>Interview Type:</span>
+              <strong style={{ color: "var(--gray-900)", textTransform: "capitalize" }}>{createdInterview.interview_type}</strong>
             </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Difficulty Strategy:</span>
-              <span className="font-semibold text-gray-900 capitalize">{createdInterview.difficulty_mode}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: "var(--sp-2)" }}>
+              <span style={{ color: "var(--gray-500)" }}>Difficulty Strategy:</span>
+              <strong style={{ color: "var(--gray-900)", textTransform: "capitalize" }}>{createdInterview.difficulty_mode}</strong>
             </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Planned Duration:</span>
-              <span className="font-semibold text-gray-900">{createdInterview.duration_minutes} minutes</span>
+            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: "var(--sp-2)" }}>
+              <span style={{ color: "var(--gray-500)" }}>Planned Duration:</span>
+              <strong style={{ color: "var(--gray-900)" }}>{createdInterview.duration_minutes} minutes</strong>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Question Count:</span>
-              <span className="font-semibold text-gray-900">{createdInterview.question_count} Questions</span>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "var(--gray-500)" }}>Question Count:</span>
+              <strong style={{ color: "var(--gray-900)" }}>{createdInterview.question_count} Questions</strong>
             </div>
           </div>
 
-          <div className="flex gap-3 justify-center">
+          <div style={{ display: "flex", gap: "var(--sp-3)", justifyContent: "center" }}>
             <button
+              type="button"
               className="btn btn-outline"
               onClick={() => setCreatedInterview(null)}
             >
               ⚙️ Modify Configuration
             </button>
             <button
-              className="btn btn-primary px-6"
-              onClick={() => alert(`Starting Live Mock Session #${createdInterview.id}... (Phase 7 feature)`)}
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                if (onInterviewCreated) {
+                  onInterviewCreated(createdInterview);
+                }
+              }}
             >
               🎯 Begin Mock Interview
             </button>
           </div>
         </div>
       ) : (
-        <div className="setup-card bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+        <div className="panel" style={{ padding: "var(--sp-8)" }}>
           {/* STEP 1: Target Role */}
           {currentStep === 1 && (
-            <div className="step-content space-y-6">
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-6)" }}>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-1">Step 1: Select Your Target Job Role</h2>
-                <p className="text-gray-500 text-sm">
+                <h2 style={{ fontSize: "var(--text-xl)", fontWeight: 800, color: "var(--gray-900)", marginBottom: "var(--sp-1)" }}>
+                  Step 1: Select Your Target Job Role
+                </h2>
+                <p style={{ fontSize: "var(--text-sm)", color: "var(--gray-500)" }}>
                   Choose a preset role or enter a custom job title so Gemini tailors relevant questions.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "var(--sp-3)" }}>
                 {PRESET_ROLES.map((role) => {
                   const isSelected = selectedRole === role;
                   return (
                     <button
                       key={role}
                       type="button"
-                      className={`p-4 rounded-xl text-left border transition-all flex items-center justify-between ${
-                        isSelected
-                          ? "border-blue-600 bg-blue-50/50 text-blue-900 ring-2 ring-blue-500/20 font-semibold"
-                          : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-                      }`}
-                      onClick={() => {
-                        setSelectedRole(role);
+                      onClick={() => setSelectedRole(role)}
+                      style={{
+                        padding: "var(--sp-4)",
+                        borderRadius: "var(--r-xl)",
+                        textAlign: "left",
+                        border: isSelected ? "2px solid var(--brand-500)" : "1px solid var(--border)",
+                        background: isSelected ? "var(--brand-50)" : "var(--surface)",
+                        color: isSelected ? "var(--brand-900)" : "var(--gray-700)",
+                        fontWeight: isSelected ? 700 : 500,
+                        fontSize: "var(--text-sm)",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        transition: "all var(--dur-fast, 150ms) var(--ease)",
                       }}
                     >
                       <span>{role}</span>
-                      {isSelected && <span className="text-blue-600 font-bold">✓</span>}
+                      {isSelected && <span style={{ color: "var(--brand-600)", fontWeight: 800 }}>✓</span>}
                     </button>
                   );
                 })}
               </div>
 
               {/* Custom Role Input */}
-              <div className="pt-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div style={{ paddingTop: "var(--sp-2)" }}>
+                <label className="control-label" style={{ marginBottom: "var(--sp-2)", display: "block" }}>
                   Or enter a Custom Role Title:
                 </label>
                 <input
                   type="text"
-                  className="control-input w-full"
+                  className="control-input"
+                  style={{ width: "100%" }}
                   placeholder="e.g. Lead Distributed Systems Architect, iOS Tech Lead"
                   value={customRole}
                   onChange={(e) => {
@@ -361,7 +454,7 @@ export default function InterviewSetupComponent({ onInterviewCreated }: Intervie
                 />
               </div>
 
-              <div className="flex justify-end pt-4">
+              <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "var(--sp-4)" }}>
                 <button
                   type="button"
                   className="btn btn-primary"
@@ -375,43 +468,48 @@ export default function InterviewSetupComponent({ onInterviewCreated }: Intervie
 
           {/* STEP 2: Interview Type */}
           {currentStep === 2 && (
-            <div className="step-content space-y-6">
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-6)" }}>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-1">Step 2: Choose Interview Format</h2>
-                <p className="text-gray-500 text-sm">
+                <h2 style={{ fontSize: "var(--text-xl)", fontWeight: 800, color: "var(--gray-900)", marginBottom: "var(--sp-1)" }}>
+                  Step 2: Choose Interview Format
+                </h2>
+                <p style={{ fontSize: "var(--text-sm)", color: "var(--gray-500)" }}>
                   Select the style of interview you want to simulate.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "var(--sp-4)" }}>
                 {INTERVIEW_TYPES.map((t) => {
                   const isSelected = interviewType === t.id;
                   return (
                     <div
                       key={t.id}
                       onClick={() => setInterviewType(t.id)}
-                      className={`p-5 rounded-2xl border cursor-pointer transition-all ${
-                        isSelected
-                          ? "border-blue-600 bg-blue-50/60 ring-2 ring-blue-500/20 shadow-sm"
-                          : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
-                      }`}
+                      style={{
+                        padding: "var(--sp-5)",
+                        borderRadius: "var(--r-xl)",
+                        border: isSelected ? "2px solid var(--brand-500)" : "1px solid var(--border)",
+                        background: isSelected ? "var(--brand-50)" : "var(--surface)",
+                        cursor: "pointer",
+                        transition: "all var(--dur-fast, 150ms) var(--ease)",
+                      }}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-2xl">{t.icon}</span>
-                        {isSelected && (
-                          <span className="px-2.5 py-0.5 bg-blue-600 text-white rounded-full text-xs font-bold">
-                            Selected
-                          </span>
-                        )}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--sp-2)" }}>
+                        <span style={{ fontSize: "var(--text-2xl)" }}>{t.icon}</span>
+                        {isSelected && <span className="badge badge-blue">Selected</span>}
                       </div>
-                      <h3 className="font-bold text-gray-900 text-base mb-1">{t.title}</h3>
-                      <p className="text-gray-500 text-xs leading-relaxed">{t.description}</p>
+                      <h3 style={{ fontWeight: 700, color: "var(--gray-900)", fontSize: "var(--text-base)", marginBottom: "var(--sp-1)" }}>
+                        {t.title}
+                      </h3>
+                      <p style={{ color: "var(--gray-500)", fontSize: "var(--text-xs)", lineHeight: 1.5 }}>
+                        {t.description}
+                      </p>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="flex justify-between pt-4">
+              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "var(--sp-4)" }}>
                 <button
                   type="button"
                   className="btn btn-outline"
@@ -432,75 +530,95 @@ export default function InterviewSetupComponent({ onInterviewCreated }: Intervie
 
           {/* STEP 3: Context Attachment */}
           {currentStep === 3 && (
-            <div className="step-content space-y-6">
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-6)" }}>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-1">Step 3: Attach Candidate Context (Optional)</h2>
-                <p className="text-gray-500 text-sm">
+                <h2 style={{ fontSize: "var(--text-xl)", fontWeight: 800, color: "var(--gray-900)", marginBottom: "var(--sp-1)" }}>
+                  Step 3: Attach Candidate Context (Optional)
+                </h2>
+                <p style={{ fontSize: "var(--text-sm)", color: "var(--gray-500)" }}>
                   Provide an uploaded resume or a specific job description so questions target your actual experience gaps.
                 </p>
               </div>
 
               {/* Context Selector Tabs */}
-              <div className="flex border-b border-gray-200 space-x-6">
+              <div style={{ display: "flex", borderBottom: "1px solid var(--border)", gap: "var(--sp-6)" }}>
                 {[
                   { id: "none", label: "No Context (General Role)" },
                   { id: "resume", label: `Uploaded Resume (${resumes.length})` },
                   { id: "jd", label: `Job Description (${jobDescriptions.length})` },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    className={`py-3 text-sm font-medium border-b-2 transition-all ${
-                      contextTab === tab.id
-                        ? "border-blue-600 text-blue-600 font-semibold"
-                        : "border-transparent text-gray-500 hover:text-gray-700"
-                    }`}
-                    onClick={() => setContextTab(tab.id as "none" | "resume" | "jd")}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+                ].map((tab) => {
+                  const isActive = contextTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setContextTab(tab.id as "none" | "resume" | "jd")}
+                      style={{
+                        padding: "var(--sp-3) 0",
+                        fontSize: "var(--text-sm)",
+                        fontWeight: isActive ? 700 : 500,
+                        color: isActive ? "var(--brand-600)" : "var(--gray-500)",
+                        borderBottom: isActive ? "2px solid var(--brand-500)" : "2px solid transparent",
+                        background: "none",
+                        borderTop: "none",
+                        borderLeft: "none",
+                        borderRight: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Tab 1: None */}
               {contextTab === "none" && (
-                <div className="p-6 bg-gray-50 rounded-xl text-center text-gray-600 text-sm border border-gray-100">
+                <div style={{ padding: "var(--sp-5)", background: "var(--gray-50)", borderRadius: "var(--r-xl)", color: "var(--gray-600)", fontSize: "var(--text-sm)", border: "1px solid var(--border)" }}>
                   <span>ℹ️</span> The AI will generate standard industry mock interview questions tailored to{" "}
-                  <strong className="text-gray-900">"{getEffectiveRole()}"</strong>.
+                  <strong style={{ color: "var(--gray-900)" }}>&quot;{getEffectiveRole()}&quot;</strong>.
                 </div>
               )}
 
               {/* Tab 2: Resume Selection */}
               {contextTab === "resume" && (
-                <div className="space-y-4">
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-4)" }}>
                   {resumes.length === 0 ? (
-                    <div className="p-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-sm">
-                      ⚠️ No resumes uploaded yet. Go to the <strong>Resume Audit</strong> tab to upload your resume PDF/DOCX.
+                    <div className="alert alert-warning">
+                      <span>⚠️</span> No resumes uploaded yet. Go to the <strong>Resume Audit</strong> tab to upload your resume PDF/DOCX.
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">Select Resume:</label>
-                      {resumes.map((r) => (
-                        <div
-                          key={r.id}
-                          onClick={() => setSelectedResumeId(r.id)}
-                          className={`p-4 rounded-xl border cursor-pointer flex items-center justify-between ${
-                            selectedResumeId === r.id
-                              ? "border-blue-600 bg-blue-50/60 ring-2 ring-blue-500/20"
-                              : "border-gray-200 bg-white hover:bg-gray-50"
-                          }`}
-                        >
-                          <div>
-                            <div className="font-semibold text-gray-900 text-sm">
-                              {r.file_url ? r.file_url.split(/[/\\]/).pop() : `Resume #${r.id}`}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-2)" }}>
+                      <label className="control-label">Select Resume:</label>
+                      {resumes.map((r) => {
+                        const isSelected = selectedResumeId === r.id;
+                        return (
+                          <div
+                            key={r.id}
+                            onClick={() => setSelectedResumeId(r.id)}
+                            style={{
+                              padding: "var(--sp-4)",
+                              borderRadius: "var(--r-xl)",
+                              border: isSelected ? "2px solid var(--brand-500)" : "1px solid var(--border)",
+                              background: isSelected ? "var(--brand-50)" : "var(--surface)",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontWeight: 600, color: "var(--gray-900)", fontSize: "var(--text-sm)" }}>
+                                {r.file_url ? r.file_url.split(/[/\\]/).pop() : `Resume #${r.id}`}
+                              </div>
+                              <div style={{ fontSize: "var(--text-xs)", color: "var(--gray-500)" }}>
+                                Audit Score: {r.audit_score ? `${Math.round(r.audit_score)}/100` : "N/A"} • Uploaded {new Date(r.created_at).toLocaleDateString()}
+                              </div>
                             </div>
-                            <div className="text-xs text-gray-500">
-                              Audit Score: {r.audit_score ? `${Math.round(r.audit_score)}/100` : "N/A"} • Uploaded {new Date(r.created_at).toLocaleDateString()}
-                            </div>
+                            {isSelected && <span style={{ color: "var(--brand-600)", fontWeight: 800 }}>✓</span>}
                           </div>
-                          {selectedResumeId === r.id && <span className="text-blue-600 font-bold">✓</span>}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -508,49 +626,57 @@ export default function InterviewSetupComponent({ onInterviewCreated }: Intervie
 
               {/* Tab 3: Job Description */}
               {contextTab === "jd" && (
-                <div className="space-y-4">
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-4)" }}>
                   {jobDescriptions.length > 0 && (
-                    <div className="space-y-2 mb-4">
-                      <label className="block text-sm font-medium text-gray-700">Select Saved Job Description:</label>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-2)", marginBottom: "var(--sp-4)" }}>
+                      <label className="control-label">Select Saved Job Description:</label>
                       {jobDescriptions.map((jd) => {
                         const title = jd.parsed_required_skills_json?.role_title || `Job Description #${jd.id}`;
                         const skills = jd.parsed_required_skills_json?.required_skills || [];
+                        const isSelected = selectedJdId === jd.id;
                         return (
                           <div
                             key={jd.id}
                             onClick={() => setSelectedJdId(jd.id)}
-                            className={`p-4 rounded-xl border cursor-pointer flex items-center justify-between ${
-                              selectedJdId === jd.id
-                                ? "border-blue-600 bg-blue-50/60 ring-2 ring-blue-500/20"
-                                : "border-gray-200 bg-white hover:bg-gray-50"
-                            }`}
+                            style={{
+                              padding: "var(--sp-4)",
+                              borderRadius: "var(--r-xl)",
+                              border: isSelected ? "2px solid var(--brand-500)" : "1px solid var(--border)",
+                              background: isSelected ? "var(--brand-50)" : "var(--surface)",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                            }}
                           >
                             <div>
-                              <div className="font-semibold text-gray-900 text-sm">{title}</div>
-                              <div className="text-xs text-gray-500 line-clamp-1">
+                              <div style={{ fontWeight: 600, color: "var(--gray-900)", fontSize: "var(--text-sm)" }}>{title}</div>
+                              <div style={{ fontSize: "var(--text-xs)", color: "var(--gray-500)" }} className="truncate">
                                 Skills: {skills.length > 0 ? skills.slice(0, 5).join(", ") : jd.raw_text.slice(0, 60)}
                               </div>
                             </div>
-                            {selectedJdId === jd.id && <span className="text-blue-600 font-bold">✓</span>}
+                            {isSelected && <span style={{ color: "var(--brand-600)", fontWeight: 800 }}>✓</span>}
                           </div>
                         );
                       })}
                     </div>
                   )}
 
-                  <div className="pt-2 border-t">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <div style={{ paddingTop: "var(--sp-3)", borderTop: "1px solid var(--border)" }}>
+                    <label className="control-label" style={{ marginBottom: "var(--sp-2)", display: "block" }}>
                       Or Paste New Job Description Text:
                     </label>
                     <textarea
-                      className="control-input w-full min-h-[100px] text-sm p-3"
+                      className="control-input"
+                      style={{ width: "100%", minHeight: 100, fontSize: "var(--text-sm)", padding: "var(--sp-3)" }}
                       placeholder="Paste target job description text here..."
                       value={pastedJdText}
                       onChange={(e) => setPastedJdText(e.target.value)}
                     />
                     <button
                       type="button"
-                      className="btn btn-outline btn-sm mt-2"
+                      className="btn btn-outline btn-sm"
+                      style={{ marginTop: "var(--sp-2)" }}
                       onClick={handleSavePastedJd}
                       disabled={savingJd || !pastedJdText.trim()}
                     >
@@ -560,7 +686,7 @@ export default function InterviewSetupComponent({ onInterviewCreated }: Intervie
                 </div>
               )}
 
-              <div className="flex justify-between pt-4">
+              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "var(--sp-4)" }}>
                 <button
                   type="button"
                   className="btn btn-outline"
@@ -581,33 +707,42 @@ export default function InterviewSetupComponent({ onInterviewCreated }: Intervie
 
           {/* STEP 4: Difficulty Strategy */}
           {currentStep === 4 && (
-            <div className="step-content space-y-6">
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-6)" }}>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-1">Step 4: Select Difficulty Strategy</h2>
-                <p className="text-gray-500 text-sm">
+                <h2 style={{ fontSize: "var(--text-xl)", fontWeight: 800, color: "var(--gray-900)", marginBottom: "var(--sp-1)" }}>
+                  Step 4: Select Difficulty Strategy
+                </h2>
+                <p style={{ fontSize: "var(--text-sm)", color: "var(--gray-500)" }}>
                   Choose a fixed difficulty level or opt for Adaptive AI scaling.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "var(--sp-4)" }}>
                 {DIFFICULTY_MODES.map((d) => {
                   const isSelected = difficultyMode === d.id;
                   return (
                     <div
                       key={d.id}
                       onClick={() => setDifficultyMode(d.id)}
-                      className={`p-5 rounded-2xl border cursor-pointer transition-all ${
-                        isSelected
-                          ? "border-blue-600 bg-blue-50/60 ring-2 ring-blue-500/20 shadow-sm"
-                          : "border-gray-200 bg-white hover:border-gray-300"
-                      }`}
+                      style={{
+                        padding: "var(--sp-5)",
+                        borderRadius: "var(--r-xl)",
+                        border: isSelected ? "2px solid var(--brand-500)" : "1px solid var(--border)",
+                        background: isSelected ? "var(--brand-50)" : "var(--surface)",
+                        cursor: "pointer",
+                        transition: "all var(--dur-fast, 150ms) var(--ease)",
+                      }}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-2xl">{d.icon}</span>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--sp-2)" }}>
+                        <span style={{ fontSize: "var(--text-2xl)" }}>{d.icon}</span>
                         <span className={`badge ${d.badgeClass}`}>{d.title}</span>
                       </div>
-                      <h3 className="font-bold text-gray-900 text-base mb-1">{d.title} Mode</h3>
-                      <p className="text-gray-500 text-xs leading-relaxed">{d.description}</p>
+                      <h3 style={{ fontWeight: 700, color: "var(--gray-900)", fontSize: "var(--text-base)", marginBottom: "var(--sp-1)" }}>
+                        {d.title} Mode
+                      </h3>
+                      <p style={{ color: "var(--gray-500)", fontSize: "var(--text-xs)", lineHeight: 1.5 }}>
+                        {d.description}
+                      </p>
                     </div>
                   );
                 })}
@@ -615,9 +750,9 @@ export default function InterviewSetupComponent({ onInterviewCreated }: Intervie
 
               {/* Informational Callout for Adaptive Mode */}
               {difficultyMode === "Adaptive" && (
-                <div className="p-4 bg-orange-50 border border-orange-200 text-orange-900 rounded-xl text-xs space-y-1">
-                  <div className="font-bold text-sm flex items-center gap-1.5">
-                    <span>🧠</span> Adaptive AI Mode Active
+                <div style={{ padding: "var(--sp-4)", background: "var(--warning-bg)", border: "1px solid var(--warning-border)", color: "var(--warning-text)", borderRadius: "var(--r-xl)", fontSize: "var(--text-xs)" }}>
+                  <div style={{ fontWeight: 700, fontSize: "var(--text-sm)", marginBottom: "var(--sp-1)" }}>
+                    🧠 Adaptive AI Mode Active
                   </div>
                   <div>
                     The system starts your session at <strong>Medium</strong> difficulty. If you provide thorough, high-scoring answers, the AI automatically escalates to <strong>Hard</strong> questions. If an answer lacks key concepts, it adjusts back to <strong>Medium/Easy</strong> to test core fundamentals.
@@ -625,7 +760,7 @@ export default function InterviewSetupComponent({ onInterviewCreated }: Intervie
                 </div>
               )}
 
-              <div className="flex justify-between pt-4">
+              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "var(--sp-4)" }}>
                 <button
                   type="button"
                   className="btn btn-outline"
@@ -646,88 +781,108 @@ export default function InterviewSetupComponent({ onInterviewCreated }: Intervie
 
           {/* STEP 5: Pace & Length */}
           {currentStep === 5 && (
-            <div className="step-content space-y-6">
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-6)" }}>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-1">Step 5: Session Duration & Question Count</h2>
-                <p className="text-gray-500 text-sm">
+                <h2 style={{ fontSize: "var(--text-xl)", fontWeight: 800, color: "var(--gray-900)", marginBottom: "var(--sp-1)" }}>
+                  Step 5: Session Duration &amp; Question Count
+                </h2>
+                <p style={{ fontSize: "var(--text-sm)", color: "var(--gray-500)" }}>
                   Configure how long your mock session will run and how many questions to attempt.
                 </p>
               </div>
 
-              <div className="space-y-6">
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-6)" }}>
                 {/* Duration */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  <label className="control-label" style={{ marginBottom: "var(--sp-2)", display: "block" }}>
                     Planned Session Duration:
                   </label>
-                  <div className="grid grid-cols-4 gap-3">
-                    {DURATION_OPTIONS.map((mins) => (
-                      <button
-                        key={mins}
-                        type="button"
-                        className={`py-3 rounded-xl font-semibold text-sm border transition-all ${
-                          durationMinutes === mins
-                            ? "border-blue-600 bg-blue-600 text-white shadow-sm"
-                            : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                        }`}
-                        onClick={() => setDurationMinutes(mins)}
-                      >
-                        ⏱️ {mins} mins
-                      </button>
-                    ))}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "var(--sp-3)" }}>
+                    {DURATION_OPTIONS.map((mins) => {
+                      const isSelected = durationMinutes === mins;
+                      return (
+                        <button
+                          key={mins}
+                          type="button"
+                          onClick={() => setDurationMinutes(mins)}
+                          style={{
+                            padding: "var(--sp-3)",
+                            borderRadius: "var(--r-xl)",
+                            fontWeight: 600,
+                            fontSize: "var(--text-sm)",
+                            border: isSelected ? "1px solid var(--brand-600)" : "1px solid var(--border)",
+                            background: isSelected ? "var(--brand-600)" : "var(--surface)",
+                            color: isSelected ? "#ffffff" : "var(--gray-700)",
+                            cursor: "pointer",
+                            transition: "all var(--dur-fast, 150ms) var(--ease)",
+                          }}
+                        >
+                          ⏱️ {mins} mins
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
                 {/* Question Count */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  <label className="control-label" style={{ marginBottom: "var(--sp-2)", display: "block" }}>
                     Number of Questions:
                   </label>
-                  <div className="grid grid-cols-4 gap-3">
-                    {QUESTION_COUNT_OPTIONS.map((cnt) => (
-                      <button
-                        key={cnt}
-                        type="button"
-                        className={`py-3 rounded-xl font-semibold text-sm border transition-all ${
-                          questionCount === cnt
-                            ? "border-blue-600 bg-blue-600 text-white shadow-sm"
-                            : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                        }`}
-                        onClick={() => setQuestionCount(cnt)}
-                      >
-                        ❓ {cnt} Questions
-                      </button>
-                    ))}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "var(--sp-3)" }}>
+                    {QUESTION_COUNT_OPTIONS.map((cnt) => {
+                      const isSelected = questionCount === cnt;
+                      return (
+                        <button
+                          key={cnt}
+                          type="button"
+                          onClick={() => setQuestionCount(cnt)}
+                          style={{
+                            padding: "var(--sp-3)",
+                            borderRadius: "var(--r-xl)",
+                            fontWeight: 600,
+                            fontSize: "var(--text-sm)",
+                            border: isSelected ? "1px solid var(--brand-600)" : "1px solid var(--border)",
+                            background: isSelected ? "var(--brand-600)" : "var(--surface)",
+                            color: isSelected ? "#ffffff" : "var(--gray-700)",
+                            cursor: "pointer",
+                            transition: "all var(--dur-fast, 150ms) var(--ease)",
+                          }}
+                        >
+                          ❓ {cnt} Questions
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
                 {/* Final Configuration Review Summary */}
-                <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200 space-y-3">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                <div style={{ background: "var(--gray-50)", borderRadius: "var(--r-2xl)", padding: "var(--sp-5)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "var(--sp-3)" }}>
+                  <h3 style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                     Session Configuration Summary
                   </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "var(--sp-3)", fontSize: "var(--text-sm)" }}>
                     <div>
-                      <div className="text-xs text-gray-500">Target Role</div>
-                      <div className="font-semibold text-gray-900">{getEffectiveRole()}</div>
+                      <div style={{ fontSize: "var(--text-xs)", color: "var(--gray-500)" }}>Target Role</div>
+                      <strong style={{ color: "var(--gray-900)" }}>{getEffectiveRole()}</strong>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500">Interview Type</div>
-                      <div className="font-semibold text-gray-900">{interviewType}</div>
+                      <div style={{ fontSize: "var(--text-xs)", color: "var(--gray-500)" }}>Interview Type</div>
+                      <strong style={{ color: "var(--gray-900)" }}>{interviewType}</strong>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500">Difficulty Mode</div>
-                      <div className="font-semibold text-gray-900">{difficultyMode}</div>
+                      <div style={{ fontSize: "var(--text-xs)", color: "var(--gray-500)" }}>Difficulty Mode</div>
+                      <strong style={{ color: "var(--gray-900)" }}>{difficultyMode}</strong>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-500">Length</div>
-                      <div className="font-semibold text-gray-900">{durationMinutes}m ({questionCount} Qs)</div>
+                      <div style={{ fontSize: "var(--text-xs)", color: "var(--gray-500)" }}>Length</div>
+                      <strong style={{ color: "var(--gray-900)" }}>{durationMinutes}m ({questionCount} Qs)</strong>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-between pt-4">
+              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "var(--sp-4)" }}>
                 <button
                   type="button"
                   className="btn btn-outline"
@@ -737,7 +892,8 @@ export default function InterviewSetupComponent({ onInterviewCreated }: Intervie
                 </button>
                 <button
                   type="button"
-                  className="btn btn-primary px-8 text-base py-3 shadow-md hover:shadow-lg"
+                  className="btn btn-primary"
+                  style={{ padding: "var(--sp-3) var(--sp-8)", fontSize: "var(--text-base)" }}
                   onClick={handleSubmit}
                   disabled={submitting}
                 >

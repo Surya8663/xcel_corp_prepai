@@ -24,7 +24,21 @@ function formatMarkdownText(text: string) {
       return <strong key={i}>{part.slice(2, -2)}</strong>;
     }
     if (part.startsWith("`") && part.endsWith("`")) {
-      return <code key={i} className="inline-code">{part.slice(1, -1)}</code>;
+      return (
+        <code
+          key={i}
+          style={{
+            background: "var(--gray-100)",
+            color: "var(--brand-700)",
+            padding: "2px 6px",
+            borderRadius: "var(--r-sm)",
+            fontFamily: "monospace",
+            fontSize: "0.9em",
+          }}
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
     }
     return part;
   });
@@ -210,7 +224,8 @@ export default function PrepareComponent() {
               {selectedRole === "custom" && (
                 <input
                   type="text"
-                  className="control-input mt-2"
+                  className="control-input"
+                  style={{ marginTop: "var(--sp-2)" }}
                   placeholder="e.g. Lead Data Platform Engineer"
                   value={customRole}
                   onChange={(e) => setCustomRole(e.target.value)}
@@ -251,6 +266,7 @@ export default function PrepareComponent() {
 
           <div className="gen-action-row">
             <button
+              type="button"
               className="btn btn-primary btn-lg"
               onClick={handleGenerate}
               disabled={generating}
@@ -269,7 +285,7 @@ export default function PrepareComponent() {
           </div>
 
           {error && (
-            <div className="error-banner mt-3" role="alert">
+            <div className="alert alert-error" role="alert" style={{ marginTop: "var(--sp-3)" }}>
               <span>⚠️</span>
               <div>{error}</div>
             </div>
@@ -296,6 +312,7 @@ export default function PrepareComponent() {
           {["all", "easy", "medium", "hard"].map((d) => (
             <button
               key={d}
+              type="button"
               className={`chip ${diffFilter === d ? "active" : ""}`}
               onClick={() => setDiffFilter(d)}
             >
@@ -324,9 +341,9 @@ export default function PrepareComponent() {
 
       {/* Questions List & Accordion View */}
       {loading ? (
-        <div className="panel text-center py-5">
-          <div className="spinner mx-auto" aria-hidden="true" />
-          <p className="mt-3 text-neutral-500">Loading stored prep questions...</p>
+        <div className="panel" style={{ textAlign: "center", padding: "var(--sp-8)" }}>
+          <div className="spinner" style={{ margin: "0 auto" }} aria-hidden="true" />
+          <p style={{ marginTop: "var(--sp-3)", color: "var(--gray-500)" }}>Loading stored prep questions...</p>
         </div>
       ) : filteredQuestions.length === 0 ? (
         <div className="panel empty-state-panel">
@@ -342,7 +359,7 @@ export default function PrepareComponent() {
         <div className="prep-questions-list">
           <div className="list-meta">
             <span>Showing <strong>{filteredQuestions.length}</strong> stored study questions</span>
-            <button className="btn btn-sm btn-outline" onClick={handleGenerate} disabled={generating}>
+            <button type="button" className="btn btn-sm btn-outline" onClick={handleGenerate} disabled={generating}>
               + Generate 5 More Questions
             </button>
           </div>
