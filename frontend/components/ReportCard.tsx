@@ -34,6 +34,15 @@ function scoreBadgeStyle(score: number): React.CSSProperties {
   return { background: "rgba(245,158,11,0.2)", color: "#fde68a" };
 }
 
+function formatItemText(item: any): string {
+  if (!item) return "";
+  if (typeof item === "string") return item;
+  if (typeof item === "object") {
+    return item.point || item.strength || item.weakness || item.text || item.description || item.title || JSON.stringify(item);
+  }
+  return String(item);
+}
+
 export default function ReportCardComponent({
   interviewId,
   initialReport = null,
@@ -271,7 +280,7 @@ export default function ReportCardComponent({
                 {report.strengths.map((item, i) => (
                   <li key={i} style={{ display: "flex", gap: "var(--sp-3)", alignItems: "flex-start", fontSize: "var(--text-sm)", color: "var(--gray-700)", lineHeight: 1.6 }}>
                     <span style={{ color: "var(--success-text)", fontWeight: 700, flexShrink: 0 }}>•</span>
-                    <span>{item}</span>
+                    <span>{formatItemText(item)}</span>
                   </li>
                 ))}
               </ul>
@@ -294,7 +303,7 @@ export default function ReportCardComponent({
                 {report.weaknesses.map((item, i) => (
                   <li key={i} style={{ display: "flex", gap: "var(--sp-3)", alignItems: "flex-start", fontSize: "var(--text-sm)", color: "var(--gray-700)", lineHeight: 1.6 }}>
                     <span style={{ color: "var(--warning-text)", fontWeight: 700, flexShrink: 0 }}>•</span>
-                    <span>{item}</span>
+                    <span>{formatItemText(item)}</span>
                   </li>
                 ))}
               </ul>
